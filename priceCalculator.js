@@ -1,4 +1,5 @@
-		const pricePerPerson = parseFloat(document.querySelector('.priceperperson').textContent);
+console.log("from gh")	
+const pricePerPerson = parseFloat(document.querySelector('.priceperperson').textContent);
  		// calculate the min event total price
     function setMinPrice() {
   		const minPers = parseInt(document.querySelector('.minpers').textContent) || 1;
