@@ -1,0 +1,265 @@
+<div id="pricePerPerson" style="font-weight: bold;"></div>
+<div id="minPrice" style="color:grey"></div>
+<div id="datePicker">
+	<label for="eventDate">Date:  </label>
+	<input type="date" id="eventDate" onfocus = "this.showPicker()" style = "cursor: pointer;"required><br><br>
+</div>
+<div class="input-container">
+  <label for="numPersons">Guests:</label>
+  <input type="number" id="numPersons" min="0" max="10000" inputmode="numeric" pattern="[0-9]*" style="-webkit-appearance: textfield; -moz-appearance: textfield;">
+  <span id="errorMsg" style="color: red; display: none;">This event can hold only <strong id="maxAllowed"></strong> people</span>
+</div>
+<strong id="totalPrice"></strong>
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div id="airtableEmbedContainer"></div>
+    <!-- Loading spinner within the modal -->
+    <div id="loadingSpinner" style="display: none;">
+  		<div class="wheel-spinner"></div>
+		</div>
+  </div>
+</div>
+<div class="embed">
+  <script>
+		const pricePerPerson = parseFloat(document.querySelector('.priceperperson').textContent);
+ 		// calculate the min event total price
+    function setMinPrice() {
+  		const minPers = parseInt(document.querySelector('.minpers').textContent) || 1;
+  		const minPrice = minPers * pricePerPerson;
+  		document.getElementById('pricePerPerson').innerText = `$${pricePerPerson} per person`;
+      document.getElementById('minPrice').innerText = `$${minPrice} minimum`;
+  		return minPrice;
+    }
+    
+		// calculate the event total price according to people num
+    function calculateTotal() {
+      const minPrice = setMinPrice();
+      const numPersonsInput = document.getElementById('numPersons');
+      let numPersons = parseInt(numPersonsInput.value) || 0;
+      const maxPers = parseInt(document.querySelector('.maxpers').textContent) || 200;
+      const errorMsg = document.getElementById('errorMsg');
+      const maxAllowed = document.getElementById('maxAllowed');
+   		
+			// only allow num of persons smaller than max allowed
+			if (numPersons > maxPers) {
+        numPersonsInput.value = maxPers;
+        numPersons = maxPers;
+        errorMsg.style.display = 'inline';
+        maxAllowed.innerText = maxPers;
+      } else {
+        errorMsg.style.display = 'none';
+      }
+      const totalPrice = pricePerPerson * numPersons;
+      const displayPrice = totalPrice < minPrice ? minPrice : totalPrice;
+      if (numPersons === 0) {
+      	document.getElementById('totalPrice').innerText = `Total: $0`;
+      } else {
+      document.getElementById('totalPrice').innerText = `Total: $${displayPrice.toFixed(2)}`;
+      }
+    }
+    document.getElementById('numPersons').addEventListener('input', calculateTotal);
+    document.getElementById('numPersons').addEventListener('input', function(event) {
+    	this.value = this.value.replace(/[-+]/g, ''); // Remove any non-numeric characters at the beginning
+    });
+    setMinPrice();
+    calculateTotal();
+    
+    // create customed prefilled Airtable link
+    function createFormLink() {
+  		let airtableLink = 'https://airtable.com/embed/appHLxqRn0sf6ZYpJ/shrQpXgOa11tUvtLA?';
+    	// form fields to build url
+      const numPeopleField = 'Attendee+Count';
+      const dateField = 'Date';
+      //const titleField = 'Title';
+      const titleField = 'Experience';
+      const slugField = 'Webflow+slug';
+      // values
+      const numPeople = document.getElementById('numPersons').value;
+      const dateInput = document.getElementById('eventDate').value;
+      const title = document.querySelector('.exp-title').id;
+      const fullPath = window.location.pathname;
+      const pathSegments = fullPath.split('/');
+			const slug = pathSegments[pathSegments.length - 1];
+      if (title) {
+      	airtableLink += `prefill_${titleField}=${title}`
+      }
+      if (numPeople) {
+      	if (airtableLink.length > 62 ) {
+      			airtableLink += `&prefill_${numPeopleField}=${numPeople}`;
+					} else {
+        		airtableLink += `prefill_${dateField}=${dateInput}`;
+        	}
+    	}
+      if (dateInput) {
+      	if (airtableLink.length > 62 ) {
+      		airtableLink += `&prefill_${dateField}=${dateInput}`;
+				} else {
+        	airtableLink += `prefill_${dateField}=${dateInput}`;
+        }
+      }
+      if (slug) {
+      	if (airtableLink.length > 62) {
+        	airtableLink += `&prefill_${slugField}=${slug}`;
+        } else {
+        	airtableLink += `prefill_${slugField}=${slug}`;
+        }
+      }
+      airtableLink+=`&hide_Total+price=true`;
+      airtableLink+=`&hide_Webflow+slug=true`;
+    	return airtableLink;
+    }
+    
+
+		function triggerConversionEvent() {
+		// Push an event to the data layer
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+        'event': 'ReserveButtonClick' // Custom event name
+    });
+		}
+       
+    // open modal
+    function openModal() {
+    const modal = document.getElementById('myModal');
+    modal.style.display = 'block';
+    // show loading wheel
+  	const loadingSpinner = document.getElementById('loadingSpinner');
+  	loadingSpinner.style.display = 'block';
+    const dynamicAirtableLink = createFormLink();
+   	// embed airtable iframe element
+   	const airtableIframe = document.createElement('iframe');
+    airtableIframe.classList.add('airtable-embed', 'airtable-dynamic-height');
+    airtableIframe.src = dynamicAirtableLink;
+    airtableIframe.frameBorder = '0';
+    airtableIframe.setAttribute('onmousewheel', '');
+    airtableIframe.width = '100%';
+    airtableIframe.height = '1718';
+    airtableIframe.style.background = 'transparent';
+    airtableIframe.onload = function() {
+    // Hide the loading wheel when content is loaded
+    loadingSpinner.style.display = 'none';
+ 		};
+    
+ 
+    // Get the container and append the Airtable iframe
+    const embedContainer = document.getElementById('airtableEmbedContainer');
+    embedContainer.innerHTML = '';
+    embedContainer.appendChild(airtableIframe);
+  
+  	// trigger GTM
+	  triggerConversionEvent()
+  
+  }
+
+
+  // Close the modal
+  function closeModal() {
+    const modal = document.getElementById('myModal');
+    modal.style.display = 'none';
+  }
+  // close modal if clicking outside of it
+	const modal = document.getElementById('myModal');
+	window.addEventListener('click', function(event) {
+  	if (event.target === modal && modal.style.display === 'block') {
+   	 modal.style.display = 'none';
+  	}
+	});
+  </script>
+  <style>
+  	input[type=number]::-webkit-inner-spin-button, 
+		input[type=number]::-webkit-outer-spin-button {
+   		opacity: 1;
+		}
+    .input-container {
+      display: flex;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .input-container label {
+      margin-right: 10px;
+      font-weight: bold;
+      
+    }
+    .modal {
+    	display: none;
+    	position: fixed;
+    	z-index: 1;
+    	left: 0;
+    	top: 0;
+    	width: 100%;
+    	height: 100%;
+    	overflow: auto;
+    	background-color: rgba(0,0,0,0.4);
+  	}
+  	.modal-content {
+    	background-color: #fefefe;
+    	margin: 15% auto;
+    	width: 80%;
+    	border: 1px solid #888;
+    }
+    .close {
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover,
+    .close:focus {
+      color: #000;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .button-test {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: 2px solid #ffde59;
+      background-color: #ffde59;
+      color: black;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 30px;
+      width: 100%;
+      margin-left: 0px;
+		}
+    .button-test:hover {
+      background-color: #ffde59;
+      border-color: #000000;
+    }
+    #totalPrice, #datePicker {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+		}
+    #datePicker label {
+    	margin-right: 10px;
+      font-weight: bold;
+    }
+    .button-container {
+    	justify-content: center;
+  		align-items: center;
+    }
+    #loadingSpinner {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .wheel-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #ccc;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .spinner-border {
+      display: none;
+    }
+  </style>
+</div>
