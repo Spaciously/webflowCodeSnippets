@@ -1,5 +1,3 @@
-console.log("hi from gh priceCalculator");
-
 const pricePerPerson = parseFloat(document.querySelector('.priceperperson').textContent);
  		// calculate the min event total price
     function setMinPrice() {
