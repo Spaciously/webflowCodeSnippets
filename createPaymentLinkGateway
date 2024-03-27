@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buy Tie Dye Workshop</title>
+  </head>
+  <body>
+    <h1>Tie Dye Workshop</h1>
+    <p>Description: Tie Dye Workshop for 10 people on 3/21/2024 at 8:00pm</p>
+    <button id="buyButton">Buy Now</button>
+    <script>
+      const lambdaUrl =
+        //   //lambda without gateway
+        //   //"https://lrt3azkderh74qgvelictvdqgq0qfpqp.lambda-url.us-east-1.on.aws/";
+
+        //   // with gateway
+        "https://bj0h6v4ml4.execute-api.us-east-1.amazonaws.com/test/";
+      const data = {
+        name: "Test gateway",
+        description: "Workshop for 1000 people on 3/21/2024 at 8:00pm",
+        startTime: "08:30PM",
+        location: "My office",
+        email: "test@gmail.com",
+        nameOfClient: "Simon B",
+        message: "this is a test",
+        date: "08/01/2024",
+        guestsNum: "15",
+        imageUrl:
+          "https://assets-global.website-files.com/64ef86633c5455ffa67af4ce/65a057690eb6bd08e1a2efa4_SpaciouslyABCFitness-157-_2_-p-800.webp/64efa831383dfe702db152da/65af10635b2b4be6fbe2ac0e_65a7f89056bbc427b39486a8_SpaciouslyABCFitness-134%2520(1)%2520(1).webp?fbclid=IwAR22ees6w39rprTXNem0bWAbQh1uBie_ah1k-72Neiv2LXs-sfHPJeIiEWc",
+        price: 6000,
+      };
+      const options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      };
+
+      document
+        .getElementById("buyButton")
+        .addEventListener("click", async () => {
+          // Fetch todo data from jsonplaceholder
+          fetch(lambdaUrl, options)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              console.log("data: ", JSON.parse(data.body));
+              console.log(typeof JSON.parse(data.body));
+              const parsedData = JSON.parse(data.body);
+              console.log(parsedData);
+              // Open the payment link in a new tab
+              if (parsedData.paymentLinkUrl) {
+                window.open(parsedData.paymentLinkUrl, "_blank");
+              } else {
+                console.error("Payment link URL not provided");
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        });
+    </script>
+  </body>
+</html>
